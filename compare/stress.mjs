@@ -4,7 +4,7 @@
 const here = new URL('.', import.meta.url);
 const targets = process.argv.length > 2
 	? process.argv.slice(2).map(arg => arg.split('='))
-	: [['base', './refs/base.mjs'], ['pr1', './refs/pr1.mjs'], ['alt', '../built/index.mjs']];
+	: [['base', './refs/base.mjs'], ['alt', '../built/index.mjs']];
 const libs = [];
 for (const [name, path] of targets) {
 	libs.push({ name, lib: await import(new URL(path, here).href) });

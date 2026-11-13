@@ -8,9 +8,7 @@ mfm.js のビルドと結果・速度を比べるための道具です。パッ�
 
 ```sh
 # compare/build-ref.sh <mfm.js の clone> <git ref> <名前>
-compare/build-ref.sh ~/develop/mfm.js be3c1db base         # 本家 develop
-compare/build-ref.sh ~/develop/mfm.js 9127e00 pr1-stage1   # samunohito/mfm.js#1 の第 1 段
-compare/build-ref.sh ~/develop/mfm.js 6f2b78c pr1          # samunohito/mfm.js#1 の最新
+compare/build-ref.sh ~/develop/mfm.js be3c1db base   # 本家 develop
 
 pnpm build                                        # mfm.alt.js 本体 (built/index.mjs)
 (cd compare && pnpm exec tsdown -c tsdown.config.ts)   # 内部オプション付きのパーサ (refs/alt-internal.mjs)
@@ -23,7 +21,7 @@ pnpm build                                        # mfm.alt.js 本体 (built/ind
 
 | スクリプト | 内容 |
 | --- | --- |
-| `node compare/bench.mjs` | `parse` の所要時間を base / pr1-stage1 / pr1 / alt で比べる。`SIMPLE=1` で `parseSimple`。引数 `名前=パス ...` で対象を変えられる |
+| `node compare/bench.mjs` | `parse` の所要時間を base と alt で比べる。`SIMPLE=1` で `parseSimple`。引数 `名前=パス ...` で対象を変えられる (例: `node compare/bench.mjs base=./refs/base.mjs other=./refs/other.mjs alt=../built/index.mjs`) |
 | `node compare/fuzz.mjs api [件数] [seed] [最大トークン数]` | ランダム入力で `parse` / `parseSimple` / `toString` の結果が base と一致するか調べる |
 | `node compare/fuzz.mjs budget [件数] [seed] [最大トークン数]` | nest budget を小さくして、ネストを途中で打ち切る経路でも結果が一致するか調べる |
 | `node compare/stress.mjs` | 細工した入力 (同じ記号の繰り返しなど) で、入力長に対して時間が跳ね上がらないことと、結果の一致を調べる |
