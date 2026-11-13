@@ -20,6 +20,22 @@ function isAsciiAlnum(code: number): boolean {
 
 export function parseRegexpSource(source: string): Item[][] {
 	let at = 0;
+	// The same items appear many times, such as `\ud83d` and `\u200d`. They are shared to save memory,
+	// which is safe because nothing changes an item after the parsing.
+	const shared = new Map<string, Item>();
+
+	function share(item: Item): Item {
+		if (item.type === 'group') {
+			return item;
+		}
+		const key = `${item.type}${item.optional ? '?' : ''}${item.set.join(',')}`;
+		const found = shared.get(key);
+		if (found !== undefined) {
+			return found;
+		}
+		shared.set(key, item);
+		return item;
+	}
 
 	function hexDigit(index: number): number {
 		const code = source.charCodeAt(index);
@@ -125,7 +141,7 @@ export function parseRegexpSource(source: string): Item[][] {
 				}
 				item.optional = true;
 			}
-			alts[alts.length - 1].push(item);
+			alts[alts.length - 1].push(share(item));
 		}
 		return alts;
 	}

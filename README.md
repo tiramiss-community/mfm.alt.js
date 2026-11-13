@@ -116,8 +116,11 @@ mfm-js は develop (`be3c1db`) をビルドしたものです。
 
 | | mfm-js | mfm.alt.js |
 | --- | --- | --- |
-| ESM バンドル (未圧縮 / gzip) | 29.6 kB / 6.8 kB | 44.6 kB / 11.5 kB |
+| ESM バンドル (未圧縮 / gzip) | 29.6 kB / 6.8 kB | 46.3 kB / 12.0 kB |
+| 常駐メモリ (import + 初回 parse + emoji-data の全絵文字を一度ずつ parse) | 約 0.45 MB | 約 1.0 MB |
 | import 後の初回 `parse` (絵文字 1 個を含む短文) | 約 2.6 ms | 約 4.0 ms |
+
+常駐メモリは `node compare/footprint.mjs` で測ったものです。mfm.alt.js は絵文字のトライ木を持つ分だけ多く、全絵文字を一通り読むとそれ以上は増えません。
 
 初回が遅いのは、`emojiRegex` のソースを読んでトライ木の根を作る処理が入るためです (mfm-js も初回は正規表現のコンパイルが入ります)。2 回目以降は同じ短文で mfm-js 約 0.14 ms に対し約 0.06 ms です。
 

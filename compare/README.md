@@ -24,6 +24,7 @@ pnpm build                                        # mfm.alt.js 本体 (built/ind
 | `node compare/bench.mjs` | `parse` の所要時間を base と alt で比べる。`SIMPLE=1` で `parseSimple`。引数 `名前=パス ...` で対象を変えられる (例: `node compare/bench.mjs base=./refs/base.mjs other=./refs/other.mjs alt=../built/index.mjs`) |
 | `node compare/fuzz.mjs api [件数] [seed] [最大トークン数]` | ランダム入力で `parse` / `parseSimple` / `toString` の結果が base と一致するか調べる |
 | `node compare/fuzz.mjs budget [件数] [seed] [最大トークン数]` | nest budget を小さくして、ネストを途中で打ち切る経路でも結果が一致するか調べる |
+| `node compare/footprint.mjs` | ライブラリが持ち続けるメモリ (import 後、初回 parse 後、全絵文字を読んだ後) を別プロセスで測る |
 | `node compare/stress.mjs` | 細工した入力 (同じ記号の繰り返しなど) で、入力長に対して時間が跳ね上がらないことと、結果の一致を調べる |
 
 - fuzz の比較対象は環境変数 `BASE` (refs 内の名前) で変えられます。既定は `base`。

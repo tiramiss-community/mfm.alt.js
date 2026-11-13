@@ -57,7 +57,7 @@ export function createEmojiMatcher(source: string): EmojiMatcher {
 				throw err;
 			}
 		},
-		firstCodes: [...trie.root.codes],
+		firstCodes: trie.root.childCodes(),
 	};
 }
 
