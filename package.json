@@ -1,0 +1,43 @@
+{
+  "name": "mfm.alt.js",
+  "version": "0.1.0",
+  "description": "A from-scratch MFM parser that is output-compatible with mfm-js",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "main": "./built/index.mjs",
+  "types": "./built/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./built/index.mjs",
+      "require": "./built/index.cjs",
+      "types": "./built/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "tsc": "tsc --noEmit",
+    "tsd": "tsd",
+    "lint": "oxlint",
+    "vitest": "vitest run",
+    "test": "pnpm run vitest && pnpm run tsd"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@misskey-dev/oxlint-fmt-config": "0.1.1",
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/node": "26.6.5",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "tsd": "0.33.0",
+    "tsdown": "0.23.4",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "@misskey-dev/emoji-data": "17.0.3"
+  },
+  "files": [
+    "built"
+  ]
+}

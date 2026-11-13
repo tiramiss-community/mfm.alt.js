@@ -1,0 +1,7 @@
+node_modules
+built
+coverage
+.vscode
+.idea
+# bundles of other mfm.js builds used for comparison (see compare/README.md)
+compare/refs
