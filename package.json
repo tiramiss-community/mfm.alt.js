@@ -4,14 +4,15 @@
   "description": "A from-scratch MFM parser that is output-compatible with mfm-js",
   "type": "module",
   "private": false,
+  "publishConfig": { "access": "public" },
   "packageManager": "pnpm@12.14.0",
   "main": "./built/index.mjs",
   "types": "./built/index.d.ts",
   "exports": {
     ".": {
+      "types": "./built/index.d.ts",
       "import": "./built/index.mjs",
-      "require": "./built/index.cjs",
-      "types": "./built/index.d.ts"
+      "require": "./built/index.cjs"
     }
   },
   "scripts": {
