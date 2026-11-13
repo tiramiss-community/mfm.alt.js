@@ -146,16 +146,52 @@ PRの作成・更新とmainへのpush時に、GitHub Actionsでビルド・型�
 
 ### 初期設定
 
-GitHubのリポジトリ設定で次のActions Secretsを登録してください。
+バージョン更新PRは標準の `GITHUB_TOKEN`、npm公開は
+[Trusted Publishing (OIDC)](https://docs.npmjs.com/trusted-publishers/) を使用します。
+PATや `NPM_TOKEN` の登録は不要です。
 
-| Secret | 用途 |
+1. GitHubのSettings → Actions → General → Workflow permissionsで
+   「Allow GitHub Actions to create and approve pull requests」を有効にします。
+   組織の設定で禁止されている場合は、組織側でも許可してください。
+2. npmの公開者に `@tiramiss-community` スコープへの公開権限を付与し、2FAを有効にします。
+   パッケージが未公開の場合は、先に下記の「初回公開」を行ってください。
+3. npmのパッケージ設定でTrusted PublisherとしてGitHub Actionsを登録します。
+
+| 項目 | 値 |
 | --- | --- |
-| `RELEASE_PR_TOKEN` | このリポジトリのContentsとPull requestsにRead and write権限を持つfine-grained PAT。Changesetsのバージョン更新PRを作成します。組織で承認が必要な場合は承認してください。 |
-| `NPM_TOKEN` | npmの `@tiramiss-community` スコープで、このパッケージを公開できるgranular access token。CIからpublishできるようBypass 2FAを有効にしてください。初回公開にも使える権限を付与し、有効期限前に更新してください。 |
+| Organization or user | `tiramiss-community` |
+| Repository | `mfm.alt.js` |
+| Workflow filename | `publish.yml` |
+| Environment | 空欄 |
+| Allowed actions | `npm publish` を許可 |
 
-通常の `GITHUB_TOKEN` で作成したPRは別のworkflowを起動しないため、
-バージョン更新PRにもCIを実行するために `RELEASE_PR_TOKEN` を使用しています。
-npm側では公開者に `@tiramiss-community` スコープへの公開権限が必要です。
+workflowはGitHub-hosted runnerとNode.js 24を使用します。
+Trusted Publishingにはnpm 11.5.1以上が必要です。
+新規のTrusted Publisher設定は2日以内に最初の公開を成功させないと失効するため、
+次のCI公開の直前に登録してください。失効した場合は削除して登録し直します。
+CI公開の成功後、npmのPublishing accessを
+「Require two-factor authentication and disallow tokens」に設定できます。
+移行前の `RELEASE_PR_TOKEN` / `NPM_TOKEN` Secretsは不要になります。
+
+### 初回公開
+
+Trusted Publisherの登録には、npm上にパッケージが存在する必要があります。
+未公開の場合だけ、CIに成功したmainの初回バージョン (現在は `0.1.0`) を手元から公開します。
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+pnpm tsc
+pnpm lint
+pnpm test
+npm login
+npm publish --access public --tag latest --provenance=false
+```
+
+初回は対話認証と2FAを使用し、CI用のトークンは発行しません。
+公開後に上記のTrusted Publisherを登録し、次のバージョンから通常の手順で公開します。
+手元で公開したバージョンのGitHub Releaseを公開するとworkflowが同じ版の再公開に失敗するため、
+通常の手順では新しいバージョンのReleaseを作成してください。
 
 ### 通常の手順
 
@@ -163,14 +199,16 @@ npm側では公開者に `@tiramiss-community` スコープへの公開権限が
    patch / minor / major と変更内容を入力し、生成された `.changeset/*.md` をコミットします。
    CIやドキュメントだけの変更にはChangesetは不要です。
 2. mainへマージすると、`Version Packages` workflowがバージョンとCHANGELOGを更新するPRを作成・更新します。
-3. 更新PRのCIと内容を確認してマージします。この時点ではnpmには公開されません。
+3. 更新PRの「Approve workflows to run」でCIの実行を承認し、CIと内容を確認してマージします。
+   `GITHUB_TOKEN` で作成・更新されたPRのCIには書き込み権限を持つ人の承認が必要です
+   ([GitHubの仕様](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs))。
+   この時点ではnpmには公開されません。
 4. マージ済みコミットを対象に、`package.json` のversionと一致する `v<version>` タグで
    GitHub Releaseを作成・公開します (例: `v0.1.1`)。
    CHANGELOGの該当バージョンをRelease本文に使用できます。
 5. `Publish` workflowがタグのバージョンを確認し、ビルド・型チェック・lint・テストに
    成功した場合にnpmへprovenance付きで公開します。ドラフトの保存だけでは公開されません。
 
-初回の `0.1.0` は、CIに成功したmainのコミットを対象に `v0.1.0` のReleaseを公開できます。
 プレリリースはChangesetsの `pnpm changeset pre enter next` を使用してバージョンを管理し、
 GitHub Releaseでも「Set as a pre-release」を選択してください。
 正式版はnpmの `latest`、プレリリースは `next` タグへ公開されます。

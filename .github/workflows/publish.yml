@@ -47,13 +47,8 @@ jobs:
       - run: pnpm test
       - name: Publish to npm
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo '::error::Configure the NPM_TOKEN repository secret. See README.md.'
-            exit 1
-          fi
           if [ "$RELEASE_PRERELEASE" = 'true' ]; then
             npm publish --access public --provenance --tag next
           else
