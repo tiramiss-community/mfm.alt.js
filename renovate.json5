@@ -1,0 +1,46 @@
+{
+	$schema: 'https://docs.renovatebot.com/renovate-schema.json',
+	extends: ['config:recommended'],
+	// メジャーアップデートの承認に使う。修正版のない脆弱性もここに出す。
+	// Mend のホスト版は Renovate 44 より古く、オブジェクト形式の dependencyDashboard を受け付けないので旧形式で書く
+	dependencyDashboard: true,
+	dependencyDashboardOSVVulnerabilitySummary: 'unresolved',
+	// 公開から7日経っていないバージョンは提案しない（pnpm-workspace.yaml の minimumReleaseAge と揃える）
+	minimumReleaseAge: '7 days',
+	// 7日経つまではブランチも作らない
+	internalChecksFilter: 'strict',
+	// OSV のデータベースから直接依存の脆弱性を検出し、修正 PR を作る（7日待たず、承認も不要）
+	osvVulnerabilityAlerts: true,
+	// pnpm-lock.yaml を作り直し、間接依存も更新する PR
+	lockFileMaintenance: {
+		enabled: true,
+		// 公開日時を持たない更新なので、7日の判定が終わらず pending のままになる。
+		// 7日の制限は pnpm-workspace.yaml の minimumReleaseAge が pnpm 側で効かせる
+		minimumReleaseAge: null,
+	},
+	packageRules: [
+		{
+			description: '非破壊的な更新は 1 つの PR にまとめる',
+			matchUpdateTypes: ['minor', 'patch', 'pin', 'pinDigest', 'digest'],
+			groupName: 'non-major dependencies',
+			groupSlug: 'all-non-major',
+		},
+		{
+			description: 'メジャーアップデートとパッケージの置き換えは依存ごとの PR にし、Dependency Dashboard で承認されるまで作らない',
+			matchUpdateTypes: ['major', 'replacement'],
+			dependencyDashboardApproval: true,
+		},
+		{
+			description: '置き換えは公開日時を持たないので、7日の判定から外す',
+			matchUpdateTypes: ['replacement'],
+			minimumReleaseAge: null,
+		},
+		{
+			description: '0.x の minor は破壊的変更なので、メジャーと同じく単独 PR にして承認制にする',
+			matchCurrentVersion: '<1.0.0',
+			matchUpdateTypes: ['minor'],
+			groupName: null,
+			dependencyDashboardApproval: true,
+		},
+	],
+}
