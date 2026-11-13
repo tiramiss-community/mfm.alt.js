@@ -7,7 +7,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "packageManager": "pnpm@12.14.0",
+  "packageManager": "pnpm@12.18.0",
   "main": "./built/index.mjs",
   "types": "./built/index.d.ts",
   "exports": {
@@ -36,13 +36,13 @@
     "@changesets/cli": "2.31.1",
     "@misskey-dev/oxlint-fmt-config": "0.1.1",
     "@stylistic/eslint-plugin": "5.10.0",
-    "@types/node": "26.6.5",
-    "oxlint": "1.88.0",
-    "oxlint-tsgolint": "7.0.2004",
+    "@types/node": "26.6.6",
+    "oxlint": "1.91.0",
+    "oxlint-tsgolint": "7.0.2006",
     "tsd": "0.33.0",
-    "tsdown": "0.23.4",
+    "tsdown": "0.23.7",
     "typescript": "7.0.2",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "dependencies": {
     "@misskey-dev/emoji-data": "^17.0.3"
