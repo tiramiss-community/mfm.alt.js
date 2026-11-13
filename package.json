@@ -4,7 +4,9 @@
   "description": "A from-scratch MFM parser that is output-compatible with mfm-js",
   "type": "module",
   "private": false,
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "packageManager": "pnpm@12.14.0",
   "main": "./built/index.mjs",
   "types": "./built/index.d.ts",
@@ -21,10 +23,17 @@
     "tsd": "tsd",
     "lint": "oxlint",
     "vitest": "vitest run",
-    "test": "pnpm run vitest && pnpm run tsd"
+    "test": "pnpm run vitest && pnpm run tsd",
+    "changeset": "changeset",
+    "version-packages": "changeset version && pnpm install --lockfile-only"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiramiss-community/mfm.alt.js.git"
+  },
   "devDependencies": {
+    "@changesets/cli": "2.31.1",
     "@misskey-dev/oxlint-fmt-config": "0.1.1",
     "@stylistic/eslint-plugin": "5.10.0",
     "@types/node": "26.6.5",

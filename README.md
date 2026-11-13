@@ -13,14 +13,18 @@ mfm-js の構文定義 (どの文字列がどのノードになるか) はその
 mfm-js と同じです。
 
 ```ts
-import * as mfm from 'mfm.alt.js';
+import * as mfm from '@tiramiss-community/mfm.alt.js';
 
 const nodes = mfm.parse('**Hello** $[tada world] :emoji: #tag');
 const text = mfm.toString(nodes);
 ```
 
-既存のプロジェクトでは、npm alias で `mfm-js` をこのパッケージに向ければ import を書き換えずに差し替えられます
-(公開する場合のパッケージ名は未定です。`package.json` は現在 `private` にしてあります)。
+公開パッケージ名は `@tiramiss-community/mfm.alt.js` です。
+既存のプロジェクトでは、npm alias で `mfm-js` をこのパッケージに向ければ import を書き換えずに差し替えられます。
+
+```sh
+pnpm add mfm-js@npm:@tiramiss-community/mfm.alt.js
+```
 
 ## 設計
 
@@ -133,6 +137,45 @@ pnpm test      # vitest + tsd
 pnpm tsc       # 型チェック
 pnpm lint      # oxlint
 ```
+
+PRの作成・更新とmainへのpush時に、GitHub Actionsでビルド・型チェック・lint・テストと
+`npm pack --dry-run` を実行します。`compare/refs` を必要とする差分fuzzテストは、
+参照ビルドのないCIではスキップされます。
+
+## リリース
+
+### 初期設定
+
+GitHubのリポジトリ設定で次のActions Secretsを登録してください。
+
+| Secret | 用途 |
+| --- | --- |
+| `RELEASE_PR_TOKEN` | このリポジトリのContentsとPull requestsにRead and write権限を持つfine-grained PAT。Changesetsのバージョン更新PRを作成します。組織で承認が必要な場合は承認してください。 |
+| `NPM_TOKEN` | npmの `@tiramiss-community` スコープで、このパッケージを公開できるgranular access token。CIからpublishできるようBypass 2FAを有効にしてください。初回公開にも使える権限を付与し、有効期限前に更新してください。 |
+
+通常の `GITHUB_TOKEN` で作成したPRは別のworkflowを起動しないため、
+バージョン更新PRにもCIを実行するために `RELEASE_PR_TOKEN` を使用しています。
+npm側では公開者に `@tiramiss-community` スコープへの公開権限が必要です。
+
+### 通常の手順
+
+1. 公開パッケージに変更を加えるPRで `pnpm changeset` を実行します。
+   patch / minor / major と変更内容を入力し、生成された `.changeset/*.md` をコミットします。
+   CIやドキュメントだけの変更にはChangesetは不要です。
+2. mainへマージすると、`Version Packages` workflowがバージョンとCHANGELOGを更新するPRを作成・更新します。
+3. 更新PRのCIと内容を確認してマージします。この時点ではnpmには公開されません。
+4. マージ済みコミットを対象に、`package.json` のversionと一致する `v<version>` タグで
+   GitHub Releaseを作成・公開します (例: `v0.1.1`)。
+   CHANGELOGの該当バージョンをRelease本文に使用できます。
+5. `Publish` workflowがタグのバージョンを確認し、ビルド・型チェック・lint・テストに
+   成功した場合にnpmへprovenance付きで公開します。ドラフトの保存だけでは公開されません。
+
+初回の `0.1.0` は、CIに成功したmainのコミットを対象に `v0.1.0` のReleaseを公開できます。
+プレリリースはChangesetsの `pnpm changeset pre enter next` を使用してバージョンを管理し、
+GitHub Releaseでも「Set as a pre-release」を選択してください。
+正式版はnpmの `latest`、プレリリースは `next` タグへ公開されます。
+Releaseのタグやプレリリース設定がpackage.jsonと一致しなければpublish前に失敗します。
+同じバージョンは再公開できないため、公開後の変更には新しいChangesetを追加してください。
 
 ## ライセンス
 
