@@ -167,7 +167,7 @@ importers:
   .:
     dependencies:
       '@misskey-dev/emoji-data':
-        specifier: 17.0.3
+        specifier: ^17.0.3
         version: 17.0.3
     devDependencies:
       '@misskey-dev/oxlint-fmt-config':
