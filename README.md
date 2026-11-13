@@ -30,19 +30,30 @@ mfm.alt.js は同じ文法を手書きの再帰下降パーサに落とし込ん
 
 | | mfm-js | mfm.alt.js |
 | --- | --- | --- |
-| 構文の表現 | コンビネータの組み合わせ | 構文ごとに 1 関数 ([src/parser.ts](src/parser.ts)) |
-| 解析結果の受け渡し | `{ success, value, index }` を毎回生成 | 戻り値は「読み終えた位置」の数値だけ。ノードはモジュール変数 `node` に置く |
+| 構文の表現 | コンビネータの組み合わせ | 構文ごとに 1 関数 ([src/parser/](src/parser/)) |
+| 解析結果の受け渡し | `{ success, value, index }` を毎回生成 | 戻り値は「読み終えた位置」の数値だけ。ノードは共有の状態 `state.node` に置く |
 | テキスト | 1 文字ずつ文字列にして最後に結合 | 入力上の範囲 (開始・終了位置) で持ち、ノードの手前でまとめて `slice` する |
 | 次に試す構文の決め方 | 先頭文字ごとの候補リストを順に試す | 文字種の表 (`Uint8Array`) と `switch` |
 | 普通の文字の連続 | 1 文字ずつ全構文を試す | 「何の構文も始まらない文字」をまとめて読み飛ばす |
-| Unicode 絵文字 | 巨大な正規表現を毎回実行 | 同じ正規表現をトライ木に変換して辿る ([src/emoji.ts](src/emoji.ts)) |
+| Unicode 絵文字 | 巨大な正規表現を毎回実行 | 同じ正規表現をトライ木に変換して辿る ([src/emoji/](src/emoji/)) |
 
 ### ファイル構成
 
 | ファイル | 内容 |
 | --- | --- |
-| [src/parser.ts](src/parser.ts) | パーサ本体。`fullParser` / `simpleParser` |
-| [src/emoji.ts](src/emoji.ts) | Unicode 絵文字のマッチャ |
+| [src/parser/](src/parser/) | パーサ本体。入口は [index.ts](src/parser/index.ts) の `fullParser` / `simpleParser` |
+| 　[state.ts](src/parser/state.ts) | 構文の関数どうしで共有する解析中の状態 (`state`) |
+| 　[chars.ts](src/parser/chars.ts) | 文字コードと文字種の表 |
+| 　[memo.ts](src/parser/memo.ts) | 細工された入力で時間が爆発しないための、入力ごとのメモ |
+| 　[helpers.ts](src/parser/helpers.ts) | 改行・行頭行末・nest budget・平文の連続の読み飛ばし |
+| 　[sequence.ts](src/parser/sequence.ts) | 項目の並び (入力全体、インライン構文の中身、`<center>` とリンクのラベル) |
+| 　[dispatch.ts](src/parser/dispatch.ts) | 位置の文字から試す構文を選ぶ (順番は mfm-js と同じ) |
+| 　[block.ts](src/parser/block.ts) | ブロック構文: 引用、コードブロック、数式ブロック、center、検索 |
+| 　[inline.ts](src/parser/inline.ts) | インライン構文: 絵文字、太字・斜体、plain、fn、インラインコード、数式 |
+| 　[link.ts](src/parser/link.ts) | 参照系のインライン構文: メンション、ハッシュタグ、URL、リンク |
+| [src/emoji/](src/emoji/) | Unicode 絵文字のマッチャ。入口は [index.ts](src/emoji/index.ts) |
+| 　[regexp.ts](src/emoji/regexp.ts) | `emojiRegex` のソースを読む (使われている構文の範囲だけ) |
+| 　[trie.ts](src/emoji/trie.ts) | 読んだ正規表現からトライ木を作り、入力と照合する |
 | [src/node.ts](src/node.ts) | ノードの型と生成関数 (mfm-js と同じ形) |
 | [src/stringify.ts](src/stringify.ts) | 構文木 → MFM 文字列 |
 | [src/api.ts](src/api.ts), [src/index.ts](src/index.ts) | 公開 API |

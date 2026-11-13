@@ -1,153 +1,15 @@
 //
-// Unicode emoji matcher.
+// The trie made from the regexp, and the matching with it.
 //
-// mfm-js matches `emojiRegex` of @misskey-dev/emoji-data at a position. The regexp is one large alternation,
-// which a regexp engine tries one by one. Here the same regexp is compiled into a trie, and matching walks
-// the trie along the input. The result is the same as the regexp for any input.
+// The regexp returns the first string it reaches, not the longest. So each string in the trie has a rank,
+// the order in which the regexp reaches it, and the matching returns the string with the smallest rank.
 //
 // The trie is built little by little: the children of a node are made when an input reaches the node for
 // the first time. So the first parsing does not have to wait for the whole trie.
 //
 
-import { emojiRegex } from '@misskey-dev/emoji-data';
-
-// ---- a parser for the subset of the regexp syntax that emojiRegex uses ----
-
-/** `optional` is the `?` quantifier. */
-type Item =
-	/** one code unit out of the set */
-	| { type: 'set', set: number[], optional: boolean }
-	/** one of the alternatives */
-	| { type: 'group', alts: Item[][], optional: boolean }
-	/** a negative lookahead: the next code unit is not in the set */
-	| { type: 'notNext', set: number[], optional: false };
-
-class UnsupportedSyntax extends Error { }
-
-function isAsciiAlnum(code: number): boolean {
-	return (code >= 0x30 && code <= 0x39) || (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a);
-}
-
-function parseRegexpSource(source: string): Item[][] {
-	let at = 0;
-
-	function hexDigit(index: number): number {
-		const code = source.charCodeAt(index);
-		if (code >= 0x30 && code <= 0x39) return code - 0x30;
-		if (code >= 0x61 && code <= 0x66) return code - 0x61 + 10;
-		if (code >= 0x41 && code <= 0x46) return code - 0x41 + 10;
-		throw new UnsupportedSyntax();
-	}
-
-	function unit(inClass: boolean): number {
-		const code = source.charCodeAt(at);
-		if (code === 0x5c) { // "\"
-			const escaped = source.charCodeAt(at + 1);
-			if (escaped === 0x75) { // "u"
-				const value = (hexDigit(at + 2) << 12) | (hexDigit(at + 3) << 8) | (hexDigit(at + 4) << 4) | hexDigit(at + 5);
-				at += 6;
-				return value;
-			}
-			// an escaped punctuation such as `\*`
-			if (escaped < 0x80 && !isAsciiAlnum(escaped)) {
-				at += 2;
-				return escaped;
-			}
-			throw new UnsupportedSyntax();
-		}
-		if (at >= source.length || (!inClass && '()[]{}|?*+.^$'.includes(source.charAt(at)))) {
-			throw new UnsupportedSyntax();
-		}
-		at++;
-		return code;
-	}
-
-	function charClass(): number[] {
-		at++; // "["
-		if (source.charAt(at) === '^') {
-			throw new UnsupportedSyntax();
-		}
-		const set: number[] = [];
-		while (source.charAt(at) !== ']') {
-			const from = unit(true);
-			let to = from;
-			if (source.charAt(at) === '-' && source.charAt(at + 1) !== ']') {
-				at++;
-				to = unit(true);
-			}
-			for (let code = from; code <= to; code++) {
-				set.push(code);
-			}
-		}
-		at++; // "]"
-		return set;
-	}
-
-	function alternation(): Item[][] {
-		const alts: Item[][] = [[]];
-		while (at < source.length && source.charAt(at) !== ')') {
-			const ch = source.charAt(at);
-			if (ch === '|') {
-				at++;
-				alts.push([]);
-				continue;
-			}
-			let item: Item;
-			if (ch === '(') {
-				const lookahead = source.startsWith('(?!', at);
-				if (lookahead || source.startsWith('(?:', at)) {
-					at += 3;
-				} else if (source.charAt(at + 1) !== '?') {
-					// a capturing group. it works as a plain group because back references are not supported
-					at += 1;
-				} else {
-					throw new UnsupportedSyntax();
-				}
-				const inner = alternation();
-				if (source.charAt(at) !== ')') {
-					throw new UnsupportedSyntax();
-				}
-				at++;
-				if (lookahead) {
-					// only a lookahead of one code unit is supported
-					const notNext: number[] = [];
-					for (const alt of inner) {
-						const only = alt.length === 1 ? alt[0] : null;
-						if (only === null || only.type !== 'set' || only.optional) {
-							throw new UnsupportedSyntax();
-						}
-						notNext.push(...only.set);
-					}
-					item = { type: 'notNext', set: notNext, optional: false };
-				} else {
-					item = { type: 'group', alts: inner, optional: false };
-				}
-			} else if (ch === '[') {
-				item = { type: 'set', set: charClass(), optional: false };
-			} else {
-				item = { type: 'set', set: [unit(false)], optional: false };
-			}
-			if (source.charAt(at) === '?') {
-				at++;
-				// a lazy quantifier changes the priority
-				if (source.charAt(at) === '?' || item.type === 'notNext') {
-					throw new UnsupportedSyntax();
-				}
-				item.optional = true;
-			}
-			alts[alts.length - 1].push(item);
-		}
-		return alts;
-	}
-
-	const alts = alternation();
-	if (at !== source.length) {
-		throw new UnsupportedSyntax();
-	}
-	return alts;
-}
-
-// ---- trie ----
+import { UnsupportedSyntax } from './regexp';
+import type { Item } from './regexp';
 
 /** nodes with more children than this use a table */
 const TABLE_MIN_CHILDREN = 4;
@@ -259,7 +121,7 @@ class TrieNode {
 /** Called at the end of a sequence. `child` is the node of the string if it is one unit longer than the prefix. */
 type Then = (depth: number, child: TrieNode | null, path: string, notNext: number[] | null) => void;
 
-class Trie {
+export class Trie {
 	readonly root = new TrieNode([], null);
 	private readonly alts: Item[][];
 	private steps = 0;
@@ -353,24 +215,8 @@ class Trie {
 	}
 }
 
-// ---- matcher ----
-
-export type EmojiMatcher = {
-	/** Returns the end of the emoji that starts at `index`, or -1. */
-	match: (input: string, index: number) => number;
-	/** The code units that an emoji can start with. `null` when they are unknown. */
-	firstCodes: number[] | null;
-};
-
-function regexpMatch(source: string): EmojiMatcher['match'] {
-	const re = new RegExp(source, 'y');
-	return (input, index) => {
-		re.lastIndex = index;
-		return re.test(input) ? re.lastIndex : -1;
-	};
-}
-
-function trieMatch(trie: Trie, input: string, index: number): number {
+/** Returns the end of the string of the regexp that starts at `index`, or -1. */
+export function trieMatch(trie: Trie, input: string, index: number): number {
 	const length = input.length;
 	let node = trie.root;
 	// the best of the strings with a lookahead on the way. they are rare
@@ -398,43 +244,4 @@ function trieMatch(trie: Trie, input: string, index: number): number {
 		return guardedEnd;
 	}
 	return node.bestRank !== null ? index + node.bestLength : -1;
-}
-
-export function createEmojiMatcher(source: string): EmojiMatcher {
-	let trie: Trie;
-	try {
-		trie = new Trie(parseRegexpSource(source));
-	} catch (err) {
-		if (err instanceof UnsupportedSyntax) {
-			// The regexp uses a syntax that is not expected. Matching it as is keeps the result right, though slower.
-			return { match: regexpMatch(source), firstCodes: null };
-		}
-		throw err;
-	}
-	let fallback: EmojiMatcher['match'] | null = null;
-	return {
-		match: (input, index) => {
-			if (fallback !== null) {
-				return fallback(input, index);
-			}
-			try {
-				return trieMatch(trie, input, index);
-			} catch (err) {
-				if (err instanceof UnsupportedSyntax) {
-					// found while expanding a node
-					fallback = regexpMatch(source);
-					return fallback(input, index);
-				}
-				throw err;
-			}
-		},
-		firstCodes: [...trie.root.codes],
-	};
-}
-
-let matcher: EmojiMatcher | null = null;
-
-export function emojiMatcher(): EmojiMatcher {
-	matcher ??= createEmojiMatcher(emojiRegex.source);
-	return matcher;
 }
