@@ -37,7 +37,7 @@
     "@misskey-dev/oxlint-fmt-config": "0.1.1",
     "@stylistic/eslint-plugin": "5.10.0",
     "@types/node": "26.6.6",
-    "oxlint": "1.91.0",
+    "oxlint": "1.92.0",
     "oxlint-tsgolint": "7.0.2006",
     "tsd": "0.33.0",
     "tsdown": "0.23.7",
